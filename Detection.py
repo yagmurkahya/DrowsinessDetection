@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import cv2
@@ -11,7 +11,7 @@ import numpy as np
 from pygame import mixer
 
 
-# In[3]:
+# In[2]:
 
 
 mixer.init()
@@ -19,7 +19,7 @@ sound=mixer.Sound("/Users/yagmurkahya/Desktop/DrowsyDetection/alarm.wav")
 #sound.play()
 
 
-# In[4]:
+# In[3]:
 
 
 face = cv2.CascadeClassifier(f'{os.getcwd()}/cascades/haarcascade_frontalface_alt.xml')
@@ -27,45 +27,50 @@ leye = cv2.CascadeClassifier(f'{os.getcwd()}/cascades/haarcascade_lefteye_2split
 reye = cv2.CascadeClassifier(f'{os.getcwd()}/cascades/haarcascade_righteye_2splits.xml')
 
 
-# In[5]:
+# In[4]:
 
 
 model = load_model(f'{os.getcwd()}/son_model.h5')
 path = os.getcwd()
 
-# Capture accesses the video feed. The "0" is the number of your video device, in case you have multiple.
-cap = cv2.VideoCapture(0)
+
+cap = cv2.VideoCapture(1)
 if cap.isOpened() == True:
-    print("Video stream open.")
+    print("Video açıldı.")
 else:
-    print("Problem opening video stream.")
+    print("Problem")
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,300)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 350)
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
-# starting value for closed-eyes inferences
+
 score = 0
-threshold = 6
-thicc = 2
+sınır = 10
+cizgi = 2
 rpred = [99]
 lpred = [99]
 
 
-# In[6]:
+# In[5]:
 
 
 while(True):
+   
+    
     ret, frame = cap.read()
     height,width = frame.shape[:2]
     
-    # convert frame to grayscale
+    
+  
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
-    # Apply Haar Cascade object detection in OpenCV to gray frame
+    
     faces = face.detectMultiScale(gray,minNeighbors=5,scaleFactor=1.1,minSize=(25,25))
     left_eye = leye.detectMultiScale(gray)
     right_eye =  reye.detectMultiScale(gray)
     
-    # draw black bars top and bottom
+    
     cv2.rectangle(frame, (0,height-50) , (width,height) , (0,0,0) , thickness=cv2.FILLED )
     
     for (x,y,w,h) in faces:
@@ -98,47 +103,47 @@ while(True):
         
     if(rpred[0]==0 and lpred[0]==0):
         score += 1
-        cv2.putText(frame,"Closed",(10,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
-        # prevent a runaway score beyond threshold
-        if score > threshold + 1:
-            score = threshold
+        cv2.putText(frame,"Closed",(7,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
+        
+        
+        if score > sınır + 1:
+            score = sınır
     else:
         score -= 1
-        cv2.putText(frame,"Open",(10,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
-    
-    # SCORE HANDLING
-    # print current score to screen
+        cv2.putText(frame,"Open",(7,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
+   
+
     if(score < 0):
         score = 0   
-    cv2.putText(frame,'Drowsiness Score:'+str(score),(100,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
+    cv2.putText(frame,'Drowsiness Score:'+str(score),(80,height-20), font, 1,(255,255,255),1,cv2.LINE_AA)
     
-    # threshold exceedance
-    if(score>threshold):
-        # save a frame when threshold exceeded and play sound
-        cv2.imwrite(os.path.join(path,'closed_eyes_screencap.jpg'),frame)
+    
+    if(score>sınır):
+        
+        cv2.imwrite(os.path.join(path,'closed_eyes.jpg'),frame)
         try:
             sound.play()
-        except:  # isplaying = False
+        except:  
             pass
         
-        # add red box as warning signal and make box thicker
-        if(thicc<16):
-            thicc += 2
-        # make box thinner again, to give it a pulsating appearance
+        
+        if(cizgi<16):
+            cizgi += 2
+        
         else:
-            thicc -= 2
-            if(thicc<2):
-                thicc=2
+            cizgi -= 2
+            if(cizgi<2):
+                cizgi=2
         cv2.rectangle(frame, (0,0), (width,height), (0,0,255), thickness=thicc)
         
-    # draw frame with all the stuff with have added
+  
     cv2.imshow('frame',frame)
     
-    # break the infinite loop when pressing q
+    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# close stream capture and close window
+
 cap.release()
 cv2.destroyAllWindows()
 
